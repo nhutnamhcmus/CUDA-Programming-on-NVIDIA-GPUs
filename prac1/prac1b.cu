@@ -18,6 +18,8 @@ __global__ void my_first_kernel(float *x)
 {
   int tid = threadIdx.x + blockDim.x*blockIdx.x;
 
+  printf("[LOG] Thread ID: %d\n", tid);
+
   x[tid] = (float) threadIdx.x;
 }
 
@@ -28,7 +30,8 @@ __global__ void my_first_kernel(float *x)
 
 int main(int argc, const char **argv)
 {
-  float *h_x, *d_x;
+  float *h_x, *d_x, *k_x, *e_x;
+
   int   nblocks, nthreads, nsize, n; 
 
   // initialise card
@@ -46,20 +49,28 @@ int main(int argc, const char **argv)
   h_x = (float *)malloc(nsize*sizeof(float));
   checkCudaErrors(cudaMalloc((void **)&d_x, nsize*sizeof(float)));
 
+  k_x = (float *)malloc(nsize*sizeof(float));
+  checkCudaErrors(cudaMalloc((void **)&e_x, nsize*sizeof(float)));
+
   // execute kernel
   
   my_first_kernel<<<nblocks,nthreads>>>(d_x);
   getLastCudaError("my_first_kernel execution failed\n");
+  my_first_kernel<<<nblocks,nthreads>>>(e_x);
+  getLastCudaError("my_first_kernel execution failed\n");
+
 
   // copy back results and print them out
+  checkCudaErrors(cudaMemcpy(h_x,d_x,nsize*sizeof(float), cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(k_x,e_x,nsize*sizeof(float), cudaMemcpyDeviceToHost));
 
-  checkCudaErrors( cudaMemcpy(h_x,d_x,nsize*sizeof(float),
-                 cudaMemcpyDeviceToHost) );
-
-  for (n=0; n<nsize; n++) printf(" n,  x  =  %d  %f \n",n,h_x[n]);
+  for (n=0; n<nsize; n++) {
+    printf(" n,  h_x, k_x, sum(h_x, k_x)  =  %d  %f %f %f\n",n,h_x[n], k_x[n], h_x[n] + k_x[n]);
+  }
+  
 
   // free memory 
-
+  
   checkCudaErrors(cudaFree(d_x));
   free(h_x);
 

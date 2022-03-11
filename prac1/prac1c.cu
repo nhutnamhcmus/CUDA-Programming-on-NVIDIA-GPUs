@@ -18,6 +18,8 @@ __global__ void my_first_kernel(float *x)
 {
   int tid = threadIdx.x + blockDim.x*blockIdx.x;
 
+  printf("[LOG] Thread ID: %d\n", tid);
+  
   x[tid] = (float) threadIdx.x;
 }
 
